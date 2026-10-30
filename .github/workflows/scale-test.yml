@@ -1,0 +1,71 @@
+name: scale-test
+
+# Benchmark of occulta on full TESS sectors: throughput, and what the search recovers.
+# Each sector is split into shards; every shard is one job that searches its share of the stars.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mission:
+        description: occulta mission name
+        default: TESS-SPOC
+      units:
+        description: comma-separated units (for TESS-SPOC, 4000 + sector)
+        required: true
+      shards:
+        description: shards per unit
+        default: '8'
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - id: m
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_OUTPUT"
+          import json
+          us = [int(u) for u in "${{ inputs.units }}".split(',') if u.strip()]
+          n = int("${{ inputs.shards }}")
+          print('matrix=' + json.dumps({'include': [{'unit': u, 'shard': k} for u in us for k in range(n)]}))
+          EOF
+
+  search:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJson(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -q .
+      - name: Prepare shard
+        run: |
+          python bench/shard.py work ${{ inputs.mission }} ${{ matrix.unit }} ${{ matrix.shard }} ${{ inputs.shards }}
+      - name: Search
+        env:
+          OCCULTA_HOME: ${{ github.workspace }}/work
+        run: |
+          start=$(date +%s)
+          timeout 20400 occulta survey run --minutes 330 --mode planets > work/run.log 2>&1 || true
+          echo "seconds $(( $(date +%s) - start ))" >> work/run.log
+          tail -5 work/run.log
+      - name: Export
+        if: always()
+        run: |
+          python bench/export.py work ${{ matrix.unit }} u${{ matrix.unit }}_s${{ matrix.shard }}.db
+          gzip u${{ matrix.unit }}_s${{ matrix.shard }}.db
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: u${{ matrix.unit }}_s${{ matrix.shard }}
+          path: |
+            u${{ matrix.unit }}_s${{ matrix.shard }}.db.gz
+            work/run.log
+          retention-days: 7
