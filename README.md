@@ -154,12 +154,12 @@ OCCULTA_ONLINE=1 python -m pytest         # also recovers two known objects from
 The recovery tests require that the pipeline find, with no prior information, the planet candidate TIC 402710280.01 at 36.340 d and the eccentric eclipsing binary CPD−37 4813 at 10.7598 d. The workflow `.github/workflows/ci.yml` runs the offline checks on Windows, macOS and Linux for every push to `main` and every pull request, on a copy of the tests against the installed package.
     
     ## About this fork: a scale test of occulta
-    
-    This fork tests how fast, precise, and accurate occulta is on complete TESS sectors. The `scale-test` workflow
-    (`.github/workflows/scale-test.yml`) splits each sector into shards, searches every light curve of each shard with
-    the unchanged occulta package, and records the search time, the noise of every light curve, every transit-like event,
-    and every periodic signal. These measurements give the throughput of the search on standard hardware and, compared
-    with the known planets and eclipsing binaries of each sector, how many real signals it recovers. The sector runs also
-    verify the findings of the main survey on an independent machine. Nothing in the occulta package itself is modified
-    here.
-    
+
+This fork tests how fast, precise, and accurate occulta is on complete TESS sectors. The `scale-test` workflow
+(`.github/workflows/scale-test.yml`) splits each sector into shards, searches every light curve of each shard with
+the unchanged occulta package, and records the search time, the noise of every light curve, every transit-like event,
+and every periodic signal. These measurements give the throughput of the search on standard hardware and, compared
+with the known planets and eclipsing binaries of each sector, how many real signals it recovers. The sector runs also
+verify the findings of the main survey on an independent machine. Nothing in the occulta package itself is modified
+here.
+
